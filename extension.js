@@ -4,10 +4,28 @@ const QuickSettings = imports.ui.quickSettings;
 
 const Main = imports.ui.main;
 
-// Temperature limite rilevate sperimentalmente sul dell latitude e5570
-// bisogna trovare un modo per farlo dinamicamente, magari all'installazione dell'estensione
-const MIN_TEMP = 1700
-const MAX_TEMP = 4700
+
+class TemperatureUtils {
+    // Temperature limite rilevate sperimentalmente sul dell latitude e5570
+    // bisogna trovare un modo per farlo dinamicamente, magari all'installazione dell'estensione
+    // Quindi probabilmente questa classe finirà in un file dedicato
+    static MIN_TEMP = 1700;
+    static MAX_TEMP = 4700;
+
+    // I metodi statici sono associati alla classe e non alle istanze (non hanno proprio accesso
+    // alle istanze infatti non si usa il 'this')
+
+
+    static normalize(temp) {
+        return 1 - (temp - this.MIN_TEMP) / (this.MAX_TEMP - this.MIN_TEMP);
+    }
+
+    // Denormalizzo la temperatura => vera temperatura in K
+    static denormalize(value) {
+        return Math.round((1 - value) * (this.MAX_TEMP - this.MIN_TEMP) + this.MIN_TEMP);
+    }
+}
+
 
 
 class NightLightSlider {
@@ -35,7 +53,7 @@ class NightLightSlider {
         // Quando lo slider cambia, aggiorna la temperatura della Night Light
         this._slider.slider.connect('notify::value', () => {
         	const value = this._slider.slider.value;
-            const temperature = Math.round((1 - value) * (MAX_TEMP - MIN_TEMP) + MIN_TEMP); // Denormalizzo la temperatura => vera temperatura in K
+            const temperature = TemperatureUtils.denormalize(value)
             
             // uint perché night-light-temperature vuole un unsigned integer (positivo)
             // _settings è un'istanza di Gio.Settings che punta allo schema delle impostazioni
@@ -52,7 +70,7 @@ class NightLightSlider {
     _getCurrentNormTemp() {
         // uint perché night-light-temperature vuole un unsigned integer (positivo)
         const temperature = this._settings.get_uint('night-light-temperature');
-        return 1 - (temperature - MIN_TEMP) / (MAX_TEMP - MIN_TEMP); // Normalizzo la temperatura
+        return TemperatureUtils.normalize(temperature);
     }
     
   
