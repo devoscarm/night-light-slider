@@ -15,7 +15,6 @@ class TemperatureUtils {
     // I metodi statici sono associati alla classe e non alle istanze (non hanno proprio accesso
     // alle istanze infatti non si usa il 'this')
 
-
     static normalize(temp) {
         return 1 - (temp - this.MIN_TEMP) / (this.MAX_TEMP - this.MIN_TEMP);
     }
@@ -30,6 +29,8 @@ class TemperatureUtils {
 
 class NightLightSlider {
     constructor() {
+
+        this._connections = []  // Array per tracciare le connessioni (ed evitare il memory leak alla disabilitazione)
 
         try {
             this._settings = new Gio.Settings({ schema_id: 'org.gnome.settings-daemon.plugins.color' });
@@ -50,8 +51,8 @@ class NightLightSlider {
         this._slider.slider.set({value: this._getCurrentNormTemp() });
 
 
-        // Quando lo slider cambia, aggiorna la temperatura della Night Light
-        this._slider.slider.connect('notify::value', () => {
+        // Collega il segnale per gestire i cambiamenti dello slider
+        const sliderSignal = this._slider.slider.connect('notify::value', () => {
         	const value = this._slider.slider.value;
             const temperature = TemperatureUtils.denormalize(value)
             
@@ -60,11 +61,13 @@ class NightLightSlider {
             // di Gnome per la Night Light
             this._settings.set_uint('night-light-temperature', temperature);
         });
+        this._connections.push([this._slider.slider, sliderSignal]); // Salva la connessione
 2
         // Aggiorna lo slider se il valore cambia da un'altra fonte
-        this._settings.connect('changed::night-light-temperature', () => {
+        const settingsSignal = this._settings.connect('changed::night-light-temperature', () => {
             this._slider.slider.set({value: this._getCurrentNormTemp() });
         });
+        this._connections.push([this._settings, settingsSignal]); // Salva la connessione
     }
 
     _getCurrentNormTemp() {
@@ -91,6 +94,20 @@ class NightLightSlider {
             quickSettingsMenu.menu.removeMenuItem(this._slider); // Rimuovi dal menu
         } else {
             global.log("ERROR: Quick Settings menu not found");
+        }
+    }
+
+    destroy() {
+        // Disconnetti tutti i segnali, per evitare il memory leak e tenere leggero il sistema
+        for (const [object, id] of this._connections) {
+            object.disconnect(id);
+        }
+        this._connections = [];
+
+        // Pulisci altre risorse se necessario
+        if (this._slider) {
+            this._slider.destroy();
+            this._slider = null;
         }
     }
 
