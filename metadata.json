@@ -2,7 +2,11 @@
     "uuid": "night-light-slider@devoscarm.github.com",
     "name": "Night Light Slider",
     "description": "Add a slider for Night Light temperature to the Quick Settings menu.",
-    "version": 1,
-    "shell-version": ["43", "44"],
-    "url": "https://github.com/yourname/night-light-slider"
+    "version": 2,
+    "shell-version": [
+        "45",
+        "46",
+        "47"
+    ],
+    "url": "https://github.com/devoscarm/night-light-slider"
 }
