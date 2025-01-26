@@ -1,9 +1,20 @@
-const { Gio } = imports.gi;
+import Gio from 'gi://Gio';
+import GObject from 'gi://GObject';
+import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import { QuickSlider, SystemIndicator } from 'resource:///org/gnome/shell/ui/quickSettings.js';
+import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 
-const QuickSettings = imports.ui.quickSettings;
+const quickSettingsMenu = Main.panel.statusArea.quickSettings;
 
-const Main = imports.ui.main;
+const ICON_NAME = 'night-light-symbolic';
+const SCHEMA = 'org.gnome.settings-daemon.plugins.color';
+const KEY = 'night-light-temperature';
 
+// You can use `journalctl -f | grep '\[NightLightSlider\]'` to see realtime logs.
+const EXT_LOG_NAME = "[NightLightSlider]";
+const extLog = (msg) => {
+    console.log(EXT_LOG_NAME, msg);
+}
 
 class TemperatureUtils {
     // Temperature limite rilevate sperimentalmente sul dell latitude e5570
@@ -26,109 +37,102 @@ class TemperatureUtils {
 }
 
 
-
-class NightLightSlider {
-    constructor() {
-
-        this._connections = []  // Array per tracciare le connessioni (ed evitare il memory leak alla disabilitazione)
-
-        try {
-            this._settings = new Gio.Settings({ schema_id: 'org.gnome.settings-daemon.plugins.color' });
-        } catch (e) {
-            global.logError('Error initializing settings:', e);
-            return;
-        }
-        
-        // Crea uno slider con lo stile QuickSlider
-        this._slider = new QuickSettings.QuickSlider({
-            label: "Night Light",
-            accessible_name: "Night Light temperature slider",
-            iconName: 'night-light-symbolic',
+const NightLightItem = GObject.registerClass(
+class NightLightItem extends QuickSlider{
+    _init() {
+        super._init({
+            iconName: ICON_NAME,
         });
 
-        // Posiziona lo slider sul valore corrente di temperatura, uso l'oggetto specifico
-        // che rappresenta il controllo dello slider (.slider.value)
-        this._slider.slider.set({value: this._getCurrentNormTemp() });
-
-
-        // Collega il segnale per gestire i cambiamenti dello slider
-        const sliderSignal = this._slider.slider.connect('notify::value', () => {
-        	const value = this._slider.slider.value;
-            const temperature = TemperatureUtils.denormalize(value)
-            
-            // uint perché night-light-temperature vuole un unsigned integer (positivo)
-            // _settings è un'istanza di Gio.Settings che punta allo schema delle impostazioni
-            // di Gnome per la Night Light
-            this._settings.set_uint('night-light-temperature', temperature);
-        });
-        this._connections.push([this._slider.slider, sliderSignal]); // Salva la connessione
-2
-        // Aggiorna lo slider se il valore cambia da un'altra fonte
-        const settingsSignal = this._settings.connect('changed::night-light-temperature', () => {
-            this._slider.slider.set({value: this._getCurrentNormTemp() });
-        });
-        this._connections.push([this._settings, settingsSignal]); // Salva la connessione
-    }
-
-    _getCurrentNormTemp() {
-        // uint perché night-light-temperature vuole un unsigned integer (positivo)
-        const temperature = this._settings.get_uint('night-light-temperature');
-        return TemperatureUtils.normalize(temperature);
-    }
-    
-  
-    addToQuickSettings() {
-        const quickSettingsMenu = Main.panel.statusArea.quickSettings;
-
-        if (quickSettingsMenu) {
-            quickSettingsMenu.menu.addMenuItem(this._slider);
-        } else {
-            global.log("ERROR: Quick Settings menu not found");
-        }
-    }
-
- 
-    removeFromQuickSettings() {
-        const quickSettingsMenu = Main.panel.statusArea.quickSettings;
-        if (quickSettingsMenu) {
-            quickSettingsMenu.menu.removeMenuItem(this._slider); // Rimuovi dal menu
-        } else {
-            global.log("ERROR: Quick Settings menu not found");
-        }
-    }
-
-    destroy() {
-        // Disconnetti tutti i segnali, per evitare il memory leak e tenere leggero il sistema
-        for (const [object, id] of this._connections) {
-            object.disconnect(id);
-        }
+        // We store signals to properly disconnect them
         this._connections = [];
 
-        // Pulisci altre risorse se necessario
-        if (this._slider) {
-            this._slider.destroy();
-            this._slider = null;
+        // Per il momento uso la classe di gnome basata su GSettings
+        // In futuro passerò al sistema di messaggistica DBus
+        this._settings = new Gio.Settings({ schema_id: SCHEMA });
+
+        // Modify the slider when the system night light temperature changes
+        // (ex if another source modify the value)
+        this._connections.push(
+            this._settings.connect(
+                `changed::${KEY}`, () => this._sync()));
+
+        // Modify night light temperature when slider is slided
+        this._connections.push(
+            this.slider.connect(
+                'notify::value', this._sliderChanged.bind(this)));
+
+        this.slider.accessible_name = _('Night Light');
+        
+        // Initializing the slider with the temperature startup value
+        this._sync();
+    }
+
+    /**
+     * Sliding the slider adjust the night light temperature
+     */
+    _sliderChanged() {
+        const value = this.slider.value;
+        const temperature = TemperatureUtils.denormalize(value);
+        this._settings.set_uint(KEY, temperature);
+    }
+
+    /**
+     * Initialize, modify slider position reading system temperature value
+     */
+    _sync() {
+        const temperature = this._settings.get_uint(KEY);
+        const value = TemperatureUtils.normalize(temperature);
+        this.slider.value = value;
+    }
+
+    /**
+     * Disconnects all saved signals
+     */
+    destroy() {
+        this._connections.forEach(id => this._settings.disconnect(id));
+        this._connections = [];
+        super.destroy();
+    }
+});
+
+const Indicator = GObject.registerClass(
+class Indicator extends SystemIndicator {
+    _init() {
+        super._init();
+        const item = new NightLightItem()
+        this.quickSettingsItems.push(item);
+        quickSettingsMenu.addExternalIndicator(this, 2);
+    }
+
+
+    destroy() {
+        this.quickSettingsItems.forEach(item => item.destroy());
+        this.quickSettingsItems = [];
+        super.destroy();
+    }
+});
+
+
+
+export default class NightLightSliderExtension extends Extension {
+    constructor(metadata) {
+        super(metadata);
+        this._indicator = null;
+    }
+
+    enable() {
+        extLog(`Extension enabled`);
+        if(!this._indicator) {
+            this._indicator = new Indicator();
         }
     }
 
-}
-
-let extension;
-
-function init() {
-    extension = new NightLightSlider();
-}
-
-function enable() {    
-    extension.addToQuickSettings();
-}
-
-function disable() {
-    if (extension) {
-        extension.removeFromQuickSettings();
-
-        // Distruggo anche le risorse allocate "per mantenere il sistema fluido" dice chatgpt haha
-        extension.destroy();
-        extension = null;
+    disable() {
+        extLog(`Extension disabled`);
+        if(this._indicator) {
+            this._indicator.destroy();
+            this._indicator = null;
+        }
     }
 }
