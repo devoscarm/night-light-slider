@@ -4,7 +4,7 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import { QuickSlider, SystemIndicator } from 'resource:///org/gnome/shell/ui/quickSettings.js';
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 
-const quickSettingsMenu = Main.panel.statusArea.quickSettings;
+const quickSettings = Main.panel.statusArea.quickSettings;
 
 const ICON_NAME = 'night-light-symbolic';
 const SCHEMA = 'org.gnome.settings-daemon.plugins.color';
@@ -100,10 +100,28 @@ const Indicator = GObject.registerClass(
 class Indicator extends SystemIndicator {
     _init() {
         super._init();
+
         const item = new NightLightItem()
-        this.quickSettingsItems.push(item);
-        quickSettingsMenu.addExternalIndicator(this, 2);
+        this.quickSettingsItems.push(NightLightItem);
+
+        const colSpan = 2;
+        
+        const brightnessItem = quickSettings._brightness.quickSettingsItems[0];
+        if (brightnessItem) {
+            extLog(`Indicator inserted before brightnessIndicator ${brightnessItem}`)
+            quickSettings.menu.insertItemBefore(
+                item, 
+                brightnessItem,
+                colSpan
+            )
+        }
+        else {
+            extLog(`Indicator added at bottom of Quick Settings`);
+            quickSettings.addExternalIndicator(this, colSpan);
+        }
     }
+
+    _insertAfterBrightness
 
 
     destroy() {
