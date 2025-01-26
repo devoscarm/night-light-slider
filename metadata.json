@@ -4,5 +4,5 @@
     "description": "Add a slider for Night Light temperature to the Quick Settings menu.",
     "version": 1,
     "shell-version": ["43", "44"],
-    "url": "https://github.com/yourname/night-light-slider"
+    "url": "https://github.com/devoscarm/night-light-slider"
 }
