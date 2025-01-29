@@ -90,7 +90,13 @@ class NightLightItem extends QuickSlider{
      * Disconnects all saved signals
      */
     destroy() {
-        this._connections.forEach(id => this._settings.disconnect(id));
+        /**
+        The last signal is always disconnected by something,
+        this raise an error in logs. Bug fix will follow.
+        Capire come funzionano i segnali in GObject
+        Capire come Gio.Settings gestisce i segnali
+        */
+        this._connections.forEach(id => this._settings.disconnect(id));   
         this._connections = [];
         super.destroy();
     }
@@ -102,7 +108,7 @@ class Indicator extends SystemIndicator {
         super._init();
 
         const item = new NightLightItem()
-        this.quickSettingsItems.push(NightLightItem);
+        this.quickSettingsItems.push(item);
 
         const colSpan = 2;
         
@@ -120,9 +126,6 @@ class Indicator extends SystemIndicator {
             quickSettings.addExternalIndicator(this, colSpan);
         }
     }
-
-    _insertAfterBrightness
-
 
     destroy() {
         this.quickSettingsItems.forEach(item => item.destroy());
