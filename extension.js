@@ -113,16 +113,20 @@ class Indicator extends SystemIndicator {
         const colSpan = 2;
         
         const brightnessItem = quickSettings._brightness.quickSettingsItems[0];
-        if (brightnessItem) {
-            extLog(`Indicator inserted before brightnessIndicator ${brightnessItem}`)
+        const items = quickSettings.menu._grid.get_children();
+        const brightnessIndex = items.indexOf(brightnessItem);
+        const nextItem = brightnessIndex >= 0 ? items[brightnessIndex + 1] : null;
+
+        if (brightnessItem && nextItem) {
+            extLog(`Indicator added after the Brightness Slider.`)
             quickSettings.menu.insertItemBefore(
                 item, 
-                brightnessItem,
+                nextItem,
                 colSpan
             )
         }
         else {
-            extLog(`Indicator added at bottom of Quick Settings`);
+            extLog(`Indicator added at bottom of Quick Settings.`);
             quickSettings.addExternalIndicator(this, colSpan);
         }
     }
