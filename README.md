@@ -1,12 +1,14 @@
 # Night Light Slider
 
-**Night Light Slider** is a GNOME extension that adds a slider to the quick settings panel, allowing you to easily adjust the color temperature of Night Light mode without diving into the Setting app.
+**Night Light Slider** is a GNOME extension that adds a slider to the quick settings panel, allowing you to easily adjust the color temperature of Night Light mode without diving into the Settings app.
+
+![Quick Settings Preview](quick-settings-screenshot.png)
 
 ## Installation
 
 ### From the GNOME Extensions Store 
 
-    (link coming soon – just waiting for GNOME to approve it! 🚀)
+link coming soon – pending GNOME's approval! 🚀
 
 ### Manual method
 
@@ -42,15 +44,15 @@ Got ideas, suggestions, or found a bug?
 This project is released under the **GNU General Public License v3.0**.
 For full details, see the [LICENSE](LICENSE) file.
 
-## Acknoledgments
+## Acknowledgments
 
 I'm thrilled to share my first GNOME extension and contribute to the amazing FOSS world!
 This project wouldn't have been possible without the incredible open-source community, which
 has taught me so much over the years.
 
-I take this opportunity to thank the communities of **Ubuntu**, **Debian**, and **GNOME** for 
+I'd like to extend my gratitude to the communities of **Ubuntu**, **Debian**, and **GNOME** for 
 their invaluable forums, documentation and discussions. Your knowledge, generosity, and passion
-continue to inspire me every day.
+continue to be a source of inspiration.
 
 To all open-source contributors out there - **thank you for making technology accessible, 
 transparent, and truly collaborative!** 🚀
