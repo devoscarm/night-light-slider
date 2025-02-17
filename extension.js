@@ -7,8 +7,9 @@ import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 const quickSettings = Main.panel.statusArea.quickSettings;
 
 const ICON_NAME = 'night-light-symbolic';
-const SCHEMA = 'org.gnome.settings-daemon.plugins.color';
-const KEY = 'night-light-temperature';
+const COLOR_SCHEMA = 'org.gnome.settings-daemon.plugins.color';
+const TEMPERATURE_KEY = 'night-light-temperature';
+const ENABLE_KEY = 'night-light-enabled';
 
 // You can use `journalctl -f | grep '\[NightLightSlider\]'` to see realtime logs.
 const EXT_LOG_NAME = "[NightLightSlider]";
@@ -49,23 +50,37 @@ class NightLightItem extends QuickSlider{
 
         // Per il momento uso la classe di gnome basata su GSettings
         // In futuro passerò al sistema di messaggistica DBus
-        this._settings = new Gio.Settings({ schema_id: SCHEMA });
+        this._settings = new Gio.Settings({ schema_id: COLOR_SCHEMA });
+
+        
+        this._updateVisibity();
+
+        // Listening for activation of night light 
+        this._connections.push(
+            this._settings.connect(`changed::${ENABLE_KEY}`, 
+                () => this._updateVisibity()));
 
         // Modify the slider when the system night light temperature changes
         // (ex if another source modify the value)
         this._connections.push(
             this._settings.connect(
-                `changed::${KEY}`, () => this._sync()));
+                `changed::${TEMPERATURE_KEY}`, () => this._sync()));
 
         // Modify night light temperature when slider is slided
         this._connections.push(
-            this.slider.connect(
-                'notify::value', this._sliderChanged.bind(this)));
+            this.slider.connect('notify::value', 
+                this._sliderChanged.bind(this)));
 
         this.slider.accessible_name = _('Night Light');
-        
+
+        // 
         // Initializing the slider with the temperature startup value
         this._sync();
+    }
+
+    _updateVisibity() {
+        const enable = this._settings.get_boolean(ENABLE_KEY);
+        this.visible = enable;
     }
 
     /**
@@ -74,14 +89,14 @@ class NightLightItem extends QuickSlider{
     _sliderChanged() {
         const value = this.slider.value;
         const temperature = TemperatureUtils.denormalize(value);
-        this._settings.set_uint(KEY, temperature);
+        this._settings.set_uint(TEMPERATURE_KEY, temperature);
     }
 
     /**
      * Initialize, modify slider position reading system temperature value
      */
     _sync() {
-        const temperature = this._settings.get_uint(KEY);
+        const temperature = this._settings.get_uint(TEMPERATURE_KEY);
         const value = TemperatureUtils.normalize(temperature);
         this.slider.value = value;
     }
@@ -111,6 +126,12 @@ class Indicator extends SystemIndicator {
         this.quickSettingsItems.push(item);
 
         const colSpan = 2;
+
+        /* mi ha dato un'errore c'é non trovata il brightness, bisogna agggiungere
+        un controllo, se non è ancora stato inizializzato, tipo un ritardo
+        è come se ricaricando gnome, con l'estensione accesa, non trovasse lo slider
+        luminosità e lo segnala come undefined.
+        */
         
         const brightnessItem = quickSettings._brightness.quickSettingsItems[0];
         const items = quickSettings.menu._grid.get_children();
