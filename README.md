@@ -13,19 +13,29 @@ https://extensions.gnome.org/extension/7846/night-light-slider/
 ### Manual method
 
 1. **Clone this repository or download the files**:
-   ```bash
-   git clone https://github.com/devoscarm/night-light-slider.git
-   ```
+
+    ```bash
+    git clone https://github.com/devoscarm/night-light-slider.git
+    ```
+
+    For Gnome 43 or 44 users, please clone the legacy branch
+    ```bash
+    git clone -b gnome-43-44 https://github.com/devoscarm/night-light-slider.git
+    ```
 
 2. **Copy the files to the GNOME extensions directory**:
     ```bash
     cp -r night-light-slider ~/.local/share/gnome-shell/extensions/night-light-slider@devoscarm.github.com
     ```
+    Or create a symbolic link, if you prefer:
+    ```bash
+    ln -sv nigth-light-slider ~/.local/share/gnome-shell/extensions/night-light-slider@devoscarm.github.com
+    ```
 
 3. **Restart GNOME**:
 
     - On Xorg: Press 'Alt + F2', type 'r' and press 'Enter'.
-    - On Wayland: Log Out and log back in.
+    - On Wayland: Log out and log back in.
 
 4. **Enable the extension**:
 
