@@ -133,15 +133,15 @@ class Indicator extends SystemIndicator {
         luminosità e lo segnala come undefined.
         */
         
-        const brightnessItem = quickSettings._brightness.quickSettingsItems[0];
+        const brightnessItem = quickSettings._brightness?.quickSettingsItems?.[0];
         const items = quickSettings.menu._grid.get_children();
-        const brightnessIndex = items.indexOf(brightnessItem);
+        const brightnessIndex = brightnessItem ? items.indexOf(brightnessItem) : -1;
         const nextItem = brightnessIndex >= 0 ? items[brightnessIndex + 1] : null;
 
         if (brightnessItem && nextItem) {
             extLog(`Indicator added after the Brightness Slider.`)
             quickSettings.menu.insertItemBefore(
-                item, 
+                item,
                 nextItem,
                 colSpan
             )
